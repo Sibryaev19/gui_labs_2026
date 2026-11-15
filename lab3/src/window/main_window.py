@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import (QMainWindow, QFileDialog, QMessageBox, QLabel,
                              QVBoxLayout, QWidget, QHBoxLayout, QPushButton)
 
 from src.db import Database
+from src.db_seed import make_test_db
 from src.window.tabs import TabsWidget
 from src.widgets.query_panel import QueryPanel
 from src.dialogs.query_dialog import QueryDialog
@@ -104,6 +105,8 @@ class MainWindow(QMainWindow):
         directory = os.path.dirname(self.target_path)
         if directory and not os.path.exists(directory):
             os.makedirs(directory)
+        if not os.path.exists(self.target_path):
+            make_test_db(self.target_path)
         try:
             self.db.connect(self.target_path)
         except Exception as e:

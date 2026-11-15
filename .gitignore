@@ -24,3 +24,6 @@ build/
 dist/
 *.spec
 
+
+# автосохранение открытого word-файла (LibreOffice lock)
+*.docx#

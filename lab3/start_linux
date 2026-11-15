@@ -2,6 +2,7 @@
 cd "$(dirname "$0")" || exit 1
 
 python3 setup/setup.py || exit 1
+python3 setup/fill_db.py || exit 1
 
 if [ -f .venv/bin/python ]; then
     PY=.venv/bin/python
