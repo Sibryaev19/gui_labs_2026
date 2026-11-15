@@ -18,3 +18,8 @@ Thumbs.db
 .cache/
 .coverage
 .coverage.*
+
+# PyInstaller
+build/
+dist/
+*.spec
