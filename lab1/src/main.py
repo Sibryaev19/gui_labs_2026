@@ -11,8 +11,8 @@ from PyQt5.QtWidgets import (
 )
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ASSETS = os.path.join(BASE_DIR, "assets")
-SHAPE_PATH = os.path.join(ASSETS, "shape.png")
+GIF_PATH = os.path.join(BASE_DIR, os.environ.get("GIF_PATH", os.path.join("assets", "giphy.gif")))
+SHAPE_PATH = os.path.join(BASE_DIR, os.environ.get("SHAPE_PATH", os.path.join("assets", "shape.png")))
 
 
 class Window(QWidget):
@@ -22,7 +22,6 @@ class Window(QWidget):
         self.setWindowFlags(Qt.Window | Qt.FramelessWindowHint)
         self.resize(1200, 800)
 
-        # Серый фон. Без WA_TranslucentBackground — иначе фон не рисуется
         self.setAutoFillBackground(True)
         pal = self.palette()
         pal.setColor(QPalette.Window, QColor("lightgray"))
@@ -50,63 +49,60 @@ class Window(QWidget):
         box.addStretch()
         self.setLayout(box)
 
-        self.movie = QMovie(os.path.join(ASSETS, "giphy.gif"))
+        self.movie = QMovie(GIF_PATH)
         self.image_shown = False
 
-        # QImage, а не QPixmap: на X11 pixmap может потерять альфу
         self.shape_img = QImage(SHAPE_PATH)
-        if self.shape_img.isNull():
-            print(f"[main] НЕ НАЙДЕН: {SHAPE_PATH}")
-        else:
+        if not self.shape_img.isNull():
             self.shape_img = self.shape_img.convertToFormat(QImage.Format_ARGB32)
-            w, h = self.shape_img.width(), self.shape_img.height()
-            corner = self.shape_img.pixelColor(0, 0).alpha()
-            center = self.shape_img.pixelColor(w // 2, h // 2).alpha()
-            print(f"[main] shape.png {w}x{h}, alpha: угол={corner}, центр={center}")
-            if corner == 255:
-                print("[main] ВНИМАНИЕ: угол непрозрачный — в assets старый PNG "
-                      "с белым фоном, замени его на сгенерированный")
         self.shaped = False
 
         self._drag_pos = None
         self._mask_busy = False
+        self._mask_cache = {}
 
         self.btn1.clicked.connect(self.change_label)
         self.btn2.clicked.connect(self.change_shape)
         self.btn_close.clicked.connect(self.close)
 
-    # ---------- форма окна по PNG ----------
-
     def build_mask(self):
-        # FastTransformation: альфа остаётся 0/255, без полупрозрачных краёв,
-        # поэтому createMaskFromColor со строгим сравнением работает точно
-        src = self.shape_img.scaled(
-            self.size(), Qt.IgnoreAspectRatio, Qt.FastTransformation
-        )
+        size = (self.width(), self.height())
+        cached = self._mask_cache.get(size)
+        if cached is not None:
+            return cached
+
+        if (self.shape_img.width(), self.shape_img.height()) == size:
+            src = self.shape_img
+        else:
+            src = self.shape_img.scaled(
+                self.width(), self.height(),
+                Qt.IgnoreAspectRatio, Qt.FastTransformation
+            )
+
         transparent = QColor(0, 0, 0, 0).rgba()
-        # MaskInColor: видимыми остаются пиксели, НЕ совпавшие с прозрачным
-        return QBitmap.fromImage(src.createMaskFromColor(transparent, Qt.MaskInColor))
+        mask = QBitmap.fromImage(src.createMaskFromColor(transparent, Qt.MaskInColor))
+
+        if len(self._mask_cache) > 8:
+            self._mask_cache.clear()
+        self._mask_cache[size] = mask
+        return mask
 
     def change_shape(self):
         if self.shaped:
-            self.clearMask()          # обычное прямоугольное серое окно
+            self.clearMask()
             self.shaped = False
         elif not self.shape_img.isNull():
             self.shaped = True
             self.setMask(self.build_mask())
-        print(f"[main] shaped={self.shaped}")
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
-        # setMask сам может вызвать resize — защищаемся от рекурсии
         if self.shaped and not self._mask_busy:
             self._mask_busy = True
             try:
                 self.setMask(self.build_mask())
             finally:
                 self._mask_busy = False
-
-    # ---------- перетаскивание frameless-окна ----------
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
@@ -121,8 +117,6 @@ class Window(QWidget):
     def mouseReleaseEvent(self, event):
         self._drag_pos = None
         event.accept()
-
-    # ---------- картинка / гифка ----------
 
     def change_label(self):
         if self.image_shown:

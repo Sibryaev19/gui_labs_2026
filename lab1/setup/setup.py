@@ -79,7 +79,16 @@ def install_system_deps():
     subprocess.run(cmd, check=True)
 
 
+def ensure_env():
+    env_path = os.path.join(BASE_DIR, ".env")
+    example = os.path.join(BASE_DIR, ".env.example")
+    if not os.path.exists(env_path) and os.path.exists(example):
+        shutil.copyfile(example, env_path)
+        print("Создан .env из .env.example")
+
+
 if __name__ == "__main__":
+    ensure_env()
     install_system_deps()
     create_venv()
     install_deps()

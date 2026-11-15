@@ -1,22 +1,27 @@
 import os
 import sys
 
-# Форма окна через setMask работает только под X11/XWayland.
-# Нативный Wayland молча игнорирует маску, поэтому форсим xcb.
 if os.name == "posix":
     os.environ["QT_QPA_PLATFORM"] = "xcb"
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, BASE_DIR)
+
+env_path = os.path.join(BASE_DIR, ".env")
+if os.path.exists(env_path):
+    with open(env_path) as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                key, value = line.split("=", 1)
+                os.environ.setdefault(key.strip(), value.strip())
 
 from PyQt5.QtWidgets import QApplication
 
 from src.main import Window
 
-
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    print(f"[start] platform: {app.platformName()}")
-
     window = Window()
     window.show()
     sys.exit(app.exec_())
