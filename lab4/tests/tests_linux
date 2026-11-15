@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+cd "$(dirname "$0")/.." || exit 1
+python3 setup/setup.py || exit 1
+if [ -f .venv/bin/python ]; then
+    PY=.venv/bin/python
+else
+    PY=python3
+fi
+QT_QPA_PLATFORM=offscreen exec "$PY" tests/run_tests.py
