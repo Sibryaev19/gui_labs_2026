@@ -54,7 +54,7 @@ class Window(QMainWindow):
         eur = self.converter.rates["EUR"]
         size = self.status.font().pointSize() + 1
         if self.converter.online:
-            head = "<b>Курсы ЦБ на</b> <i>%s</i>" % self.converter.date
+            head = "<b>Рыночный курс forex на</b> <i>%s</i>" % self.converter.date
         else:
             head = "<b>Нет сети, курсы из .env</b>"
         self.status.setText('<span style="font-size:%dpt">%s<br>1.00 $ = %.2f ₽<br>1.00 € = %.2f ₽</span>'

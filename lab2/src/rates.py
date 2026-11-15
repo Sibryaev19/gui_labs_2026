@@ -2,26 +2,32 @@ import json
 import os
 import urllib.request
 
-URL = "https://www.cbr-xml-daily.ru/daily_json.js"
+URL = "https://query1.finance.yahoo.com/v8/finance/chart/{}RUB=X?interval=1m&range=1d"
 
 
-def fetch_cbr_rates():
+def fetch_market_rate(cur):
+    req = urllib.request.Request(URL.format(cur), headers={"User-Agent": "Mozilla/5.0"})
+    with urllib.request.urlopen(req, timeout=5) as r:
+        data = json.loads(r.read().decode("utf-8"))
+    meta = data["chart"]["result"][0]["meta"]
+    return meta["regularMarketPrice"], meta["regularMarketTime"]
+
+
+def fetch_rates():
     try:
-        with urllib.request.urlopen(URL, timeout=5) as r:
-            data = json.loads(r.read().decode("utf-8"))
-        usd = data["Valute"]["USD"]
-        eur = data["Valute"]["EUR"]
-        rates = {
-            "USD": usd["Value"] / usd["Nominal"],
-            "EUR": eur["Value"] / eur["Nominal"],
-        }
-        return rates, data["Date"][:10]
+        usd, t_usd = fetch_market_rate("USD")
+        eur, t_eur = fetch_market_rate("EUR")
+        rates = {"USD": usd, "EUR": eur}
+        t = max(t_usd, t_eur)
+        import datetime
+        date = datetime.datetime.fromtimestamp(t).strftime("%Y-%m-%d %H:%M:%S")
+        return rates, date
     except Exception:
         return None, ""
 
 
 def get_rates():
-    rates, date = fetch_cbr_rates()
+    rates, date = fetch_rates()
     if rates is not None:
         return rates, True, date
     return {
