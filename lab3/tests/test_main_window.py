@@ -28,6 +28,7 @@ class TestMainWindow(unittest.TestCase):
         self.window = MainWindow()
 
     def tearDown(self):
+        self.window.db.close()
         self.window.close()
         self.temp_dir.cleanup()
         os.environ.pop("DB_PATH", None)

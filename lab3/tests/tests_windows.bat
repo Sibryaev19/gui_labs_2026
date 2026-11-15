@@ -1,56 +1,25 @@
 @echo off
-setlocal enabledelayedexpansion
+setlocal
 cd /d %~dp0\..
 
-rem Minimum required version: Python 3.8
-set MINVER=308
-set PY=
-
-call :find_python
-if "!PY!"=="" (
-    echo Python 3.8+ not found on this computer.
-    echo Install Python 3.8 or newer from https://www.python.org/downloads/
-    echo and run this file again.
+rem Tests must run on the prepared virtual environment only.
+if not exist .venv\Scripts\python.exe (
+    echo Virtual environment not found: .venv\Scripts\python.exe
+    echo Run start_windows.bat first - it creates .venv and installs the libraries.
     pause
     exit /b 1
 )
 
-echo Using Python: !PY!
-"!PY!" setup\setup.py || exit /b 1
-
-if exist .venv\Scripts\python.exe (
-    set "PY=.venv\Scripts\python.exe"
+".venv\Scripts\python.exe" -c "import PyQt5" 2>nul
+if errorlevel 1 (
+    echo Library PyQt5 is missing in .venv.
+    echo Run start_windows.bat first - it installs the required libraries.
+    pause
+    exit /b 1
 )
+
 set QT_QPA_PLATFORM=offscreen
-"!PY!" tests\run_tests.py
+".venv\Scripts\python.exe" tests\run_tests.py
+set RC=%errorlevel%
 pause
-goto :eof
-
-:find_python
-rem 1) python in PATH
-for %%c in (python.exe python3.exe) do (
-    for /f "delims=" %%p in ('where %%c 2^>nul') do call :check "%%p"
-    if not "!PY!"=="" goto :eof
-)
-
-rem 2) py launcher
-where py >nul 2>nul
-if not errorlevel 1 (
-    for /f "usebackq delims=" %%p in (`py -c "import sys;print(sys.executable)" 2^>nul`) do call :check "%%p"
-    if not "!PY!"=="" goto :eof
-)
-
-rem 3) standard install locations
-for /d %%D in ("%LOCALAPPDATA%\Programs\Python\Python*") do if exist "%%D\python.exe" call :check "%%D\python.exe"
-if not "!PY!"=="" goto :eof
-for /d %%D in ("C:\Python*") do if exist "%%D\python.exe" call :check "%%D\python.exe"
-for /d %%D in ("%ProgramFiles%\Python*") do if exist "%%D\python.exe" call :check "%%D\python.exe"
-for /d %%D in ("%ProgramFiles(x86)%\Python*") do if exist "%%D\python.exe" call :check "%%D\python.exe"
-goto :eof
-
-:check
-if defined PY goto :eof
-for /f "usebackq delims=" %%v in (`"%~1" -c "import sys;print(sys.version_info[0]*100+sys.version_info[1])" 2^>nul`) do (
-    if %%v geq %MINVER% set "PY=%~1"
-)
-goto :eof
+exit /b %RC%

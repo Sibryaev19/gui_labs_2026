@@ -49,7 +49,9 @@ goto :eof
 
 :check
 if defined PY goto :eof
-for /f "usebackq delims=" %%v in (`"%~1" -c "import sys;print(sys.version_info[0]*100+sys.version_info[1])" 2^>nul`) do (
+pushd "%~dp1"
+for /f "usebackq delims=" %%v in (`%~nx1 -c "import sys;print(sys.version_info[0]*100+sys.version_info[1])" 2^>nul`) do (
     if %%v geq %MINVER% set "PY=%~1"
 )
+popd
 goto :eof

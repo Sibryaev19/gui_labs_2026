@@ -9,9 +9,17 @@ class Converter(QObject):
     def __init__(self):
         super().__init__()
         self.rates, self.online, self.date = rates.get_rates()
+        self.error = rates.last_error
 
     def updateRates(self):
-        self.rates, self.online, self.date = rates.get_rates()
+        fetched, date = rates.fetch_rates()
+        if fetched is not None:
+            self.rates, self.online, self.date = fetched, True, date
+            self.error = ""
+        else:
+            # неудачная попытка: старый курс сохраняется, показываем причину
+            self.online = False
+            self.error = rates.last_error
         self.ratesChanged.emit()
 
     def toRub(self, cur, value):

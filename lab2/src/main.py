@@ -29,7 +29,7 @@ class Window(QMainWindow):
 
         self.status = QLabel()
         self.refreshBtn = QPushButton("Обновить курсы")
-        self.refreshBtn.clicked.connect(self.converter.onRefresh)
+        self.refreshBtn.clicked.connect(self.onRefreshClicked)
 
         form = QFormLayout()
         form.addRow("Доллар, $", self.usd)
@@ -49,12 +49,22 @@ class Window(QMainWindow):
         self.usd.setValue(1.0)
 
     @pyqtSlot()
+    def onRefreshClicked(self):
+        # клики, пока идёт обновление, не регистрируются: кнопка неактивна
+        self.refreshBtn.setEnabled(False)
+        self.converter.onRefresh()
+
+    @pyqtSlot()
     def onRatesChanged(self):
+        self.refreshBtn.setEnabled(True)
         usd = self.converter.rates["USD"]
         eur = self.converter.rates["EUR"]
         size = self.status.font().pointSize() + 1
         if self.converter.online:
             head = "<b>Рыночный курс forex на</b> <i>%s</i>" % self.converter.date
+        elif self.converter.error:
+            head = ("<b>Курс не обновлён (%s).</b> <i>Подождите ~10 с "
+                    "и нажмите «Обновить курсы»</i>" % self.converter.error)
         else:
             head = "<b>Нет сети, курсы из .env</b>"
         self.status.setText('<span style="font-size:%dpt">%s<br>1.00 $ = %.2f ₽<br>1.00 € = %.2f ₽</span>'
