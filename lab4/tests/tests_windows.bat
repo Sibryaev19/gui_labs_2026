@@ -19,6 +19,7 @@ if errorlevel 1 (
 )
 
 set QT_QPA_PLATFORM=offscreen
+set QT_QPA_FONTDIR=%WINDIR%\Fonts
 ".venv\Scripts\python.exe" tests\run_tests.py
 set RC=%errorlevel%
 pause
